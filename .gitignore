@@ -1,0 +1,25 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+notifications.log
+
+# Runtime data
+payroll.db
+
+# Temp DB fixes
+fix_db.*
+run_fix.bat
+check_schema.php
+add_column.php
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Deploy
+TODO_DEPLOY.md
+
