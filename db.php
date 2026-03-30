@@ -355,7 +355,7 @@ function getEmployeeByUsername($username) {
  * Format currency consistently across the application
  */
 function formatCurrency($amount) {
-    return number_format($amount ?? 0, 0) . ' FCAF';
+    return '₹' . number_format($amount ?? 0, 2);
 }
 ?>
 

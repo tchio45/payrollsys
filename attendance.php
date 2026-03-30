@@ -782,8 +782,5 @@ $allRequests = $pdo->query("
 </body>
 </html>
 
-<?php
-function formatCurrency($amount) {
-    return '₹' . number_format($amount ?? 0, 2);
-}
-?>
+
+
