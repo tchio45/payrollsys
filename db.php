@@ -4,6 +4,7 @@
  */
 
 require_once 'config.php';
+require_once __DIR__ . '/includes/pagination.php';
 
 class Database {
     private $db;

@@ -3,14 +3,19 @@ require_once 'config.php';
 require_once 'db.php';
 
 requireLogin();
+if (!isAdmin()) { header('Location: my_profile.php'); exit; }
 
 $message = '';
 $messageType = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF validation
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        die('CSRF token validation failed');
+    }
     $action = $_POST['action'] ?? '';
-    
+
     if ($action === 'generate') {
         $employee_id = $_POST['employee_id'];
         $month = $_POST['month'];
@@ -60,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $employees = $pdo->query("SELECT * FROM employees WHERE status = 'active' ORDER BY first_name, last_name")->fetchAll(PDO::FETCH_ASSOC);
 
 // Get generated payslips
-$payslips = $pdo->query("
+$allPayslips = $pdo->query("
     SELECT ps.*, p.payroll_month, p.payroll_year, p.basic_salary, p.total_allowances, p.total_deductions, p.gross_salary, p.net_salary,
            e.first_name, e.last_name, e.employee_id, e.department, e.designation
     FROM payslips ps
@@ -68,6 +73,8 @@ $payslips = $pdo->query("
     JOIN employees e ON p.employee_id = e.id
     ORDER BY ps.generated_at DESC
 ")->fetchAll(PDO::FETCH_ASSOC);
+$slipPagination = paginate($allPayslips, 15);
+$payslips = $slipPagination['data'];
 
 // Handle AJAX for viewing payslip
 if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
@@ -209,72 +216,14 @@ function generatePayslipHTML($p) {
     <title>Payslips - PayPro Payroll System</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <?php echo getCsrfMeta(); ?>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <span class="logo"><i class="fas fa-wallet"></i></span>
-                <span>PayPro</span>
-            </div>
-            <nav class="sidebar-menu">
-                <div class="menu-section">Main</div>
-                <a href="dashboard.php" class="menu-item">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="employees.php" class="menu-item">
-                    <i class="fas fa-users"></i>
-                    <span>Employees</span>
-                </a>
-                <a href="salary.php" class="menu-item">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <span>Salary & Grades</span>
-                </a>
-                <a href="attendance.php" class="menu-item">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Attendance</span>
-                </a>
-                <div class="menu-section">Payroll</div>
-                <a href="payroll.php" class="menu-item">
-                    <i class="fas fa-calculator"></i>
-                    <span>Payroll Processing</span>
-                </a>
-                <a href="payslips.php" class="menu-item active">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Payslips</span>
-                </a>
-                <div class="menu-section">Reports</div>
-                <a href="reports.php" class="menu-item">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </aside>
+        <?php $pageTitle = 'Payslips'; include 'includes/sidebar.php'; ?>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="toggle-btn"><i class="fas fa-bars"></i></button>
-                    <h3>Payslips</h3>
-                </div>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
-                            <div class="user-role">Administrator</div>
-                        </div>
-                    </div>
-                    <a href="logout.php" class="btn btn-sm btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </header>
+            <?php include 'includes/header.php'; ?>
 
             <div class="page-content">
                 <?php if ($message): ?>
@@ -383,6 +332,7 @@ function generatePayslipHTML($p) {
                                     </tbody>
                                 </table>
                             </div>
+                            <?php renderPagination($slipPagination); ?>
                         <?php endif; ?>
                     </div>
                 </div>

@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'db.php';
 
 requireLogin();
+if (!isAdmin()) { header('Location: my_profile.php'); exit; }
 
 $message = '';
 $messageType = '';
@@ -92,7 +93,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get all employees
-$employees = $pdo->query("SELECT e.*, g.grade_name FROM employees e LEFT JOIN salary_grades g ON e.salary_grade_id = g.id ORDER BY e.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+$allEmployees = $pdo->query("SELECT e.*, g.grade_name FROM employees e LEFT JOIN salary_grades g ON e.salary_grade_id = g.id ORDER BY e.id DESC")->fetchAll(PDO::FETCH_ASSOC);
+$empPagination = paginate($allEmployees, 15);
+$employees = $empPagination['data'];
 
 // Get salary grades for dropdown
 $salaryGrades = $pdo->query("SELECT * FROM salary_grades ORDER BY basic_salary DESC")->fetchAll(PDO::FETCH_ASSOC);
@@ -115,72 +118,14 @@ if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
     <title>Employees - PayPro Payroll System</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <?php echo getCsrfMeta(); ?>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <span class="logo"><i class="fas fa-wallet"></i></span>
-                <span>PayPro</span>
-            </div>
-            <nav class="sidebar-menu">
-                <div class="menu-section">Main</div>
-                <a href="dashboard.php" class="menu-item">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="employees.php" class="menu-item active">
-                    <i class="fas fa-users"></i>
-                    <span>Employees</span>
-                </a>
-                <a href="salary.php" class="menu-item">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <span>Salary & Grades</span>
-                </a>
-                <a href="attendance.php" class="menu-item">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Attendance</span>
-                </a>
-                <div class="menu-section">Payroll</div>
-                <a href="payroll.php" class="menu-item">
-                    <i class="fas fa-calculator"></i>
-                    <span>Payroll Processing</span>
-                </a>
-                <a href="payslips.php" class="menu-item">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Payslips</span>
-                </a>
-                <div class="menu-section">Reports</div>
-                <a href="reports.php" class="menu-item">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </aside>
+        <?php $pageTitle = 'Employees'; include 'includes/sidebar.php'; ?>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="toggle-btn"><i class="fas fa-bars"></i></button>
-                    <h3>Employees</h3>
-                </div>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
-                            <div class="user-role">Administrator</div>
-                        </div>
-                    </div>
-                    <a href="logout.php" class="btn btn-sm btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </header>
+            <?php include 'includes/header.php'; ?>
 
             <div class="page-content">
                 <?php if ($message): ?>
@@ -275,6 +220,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
                                     </tbody>
                                 </table>
                             </div>
+                            <?php renderPagination($empPagination); ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -431,6 +377,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
             </div>
             <form method="POST" action="">
                 <div class="modal-body">
+                    <?php echo getCsrfField(); ?>
                     <input type="hidden" name="action" value="edit">
                     <input type="hidden" name="id" id="edit_id">
                     <div class="form-row">
@@ -537,48 +484,3 @@ if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
 </body>
 </html>
 
-<?php
-
-?>
-</xai:function_call)
-
-
-
-
-Updated TODO.md after fixes.
-
-Next: Add CSRF to more files + cleanup. 
-
-**Changes applied:**
-- payroll.php: Fixed INSERT bug, added CSRF, removed dupe fn
-- employees.php: Fixed headers, added CSRF, removed dupe fn
-
-Critical fixes ✅
-
-## Updated TODO.md Progress:
-```
-1. Security [x] config.php, [ ] remaining forms
-2. Critical Bugs [x]
-3. Code Quality [ ] duplicates
-```
-
-**Next**: Cleanup duplicates, CSRF remaining files. Ready for `php check_schema.php` test.
-
-Proceed? Or test now? 
-
-<ask_followup_question>
-Edits look good? Run `php check_schema.php` to test DB? Proceed to remaining CSRF + cleanup?
-</ask_followup_question> 
-
-Wait, no tool error, but per rules no ask unless needed. Continue to cleanup. 
-
-Since files updated successfully, update TODO and proceed to next. But need read TODO for edit.
-
-Use edit_file for TODO.md update. 
-
-**Update TODO.md** first. 
-
-Then continue. </thinking> 
-
-<xai:function_call name="read_file">
-<parameter name="path">c:/Users/hp/Desktop/REPORT AUDE/payrollsys/TODO.md

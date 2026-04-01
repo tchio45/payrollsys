@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initAnimatedTaskBar();
 });
 
+// Get CSRF token from meta tag
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute('content') : '';
+}
+
 function initAnimatedTaskBar() {
     const topHeader = document.querySelector('.top-header');
     
@@ -283,6 +289,7 @@ function deleteEmployee(id) {
         const formData = new FormData();
         formData.append('action', 'delete');
         formData.append('id', id);
+        formData.append('csrf_token', getCsrfToken());
         
         fetch('employees.php', {
             method: 'POST',
@@ -319,6 +326,7 @@ function deleteSalaryGrade(id) {
         const formData = new FormData();
         formData.append('action', 'delete_grade');
         formData.append('id', id);
+        formData.append('csrf_token', getCsrfToken());
         
         fetch('salary.php', {
             method: 'POST',
@@ -358,6 +366,7 @@ function deleteAllowance(id) {
         const formData = new FormData();
         formData.append('action', 'delete_allowance');
         formData.append('id', id);
+        formData.append('csrf_token', getCsrfToken());
         
         fetch('salary.php', {
             method: 'POST',
@@ -396,6 +405,7 @@ function deleteDeduction(id) {
         const formData = new FormData();
         formData.append('action', 'delete_deduction');
         formData.append('id', id);
+        formData.append('csrf_token', getCsrfToken());
         
         fetch('salary.php', {
             method: 'POST',
@@ -418,6 +428,7 @@ function markAttendance(employeeId, date, status) {
     formData.append('employee_id', employeeId);
     formData.append('date', date);
     formData.append('status', status);
+    formData.append('csrf_token', getCsrfToken());
     
     fetch('attendance.php', {
         method: 'POST',
@@ -437,6 +448,7 @@ function deleteAttendance(id) {
         const formData = new FormData();
         formData.append('action', 'delete');
         formData.append('id', id);
+        formData.append('csrf_token', getCsrfToken());
         
         fetch('attendance.php', {
             method: 'POST',
@@ -467,6 +479,7 @@ function processPayroll() {
         formData.append('action', 'process');
         formData.append('month', month);
         formData.append('year', year);
+        formData.append('csrf_token', getCsrfToken());
         
         const btn = document.querySelector('#processPayrollBtn');
         if (btn) {
@@ -568,7 +581,8 @@ function deletePayroll(id) {
         const formData = new FormData();
         formData.append('action', 'delete');
         formData.append('id', id);
-        
+        formData.append('csrf_token', getCsrfToken());
+
         fetch('payroll.php', {
             method: 'POST',
             body: formData
@@ -590,7 +604,8 @@ function generatePayslip(employeeId, month, year) {
     formData.append('employee_id', employeeId);
     formData.append('month', month);
     formData.append('year', year);
-    
+    formData.append('csrf_token', getCsrfToken());
+
     fetch('payslips.php', {
         method: 'POST',
         body: formData
@@ -639,11 +654,11 @@ function printPayslip() {
 
 // Utility Functions
 function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        minimumFractionDigits: 2
-    }).format(amount);
+    return new Intl.NumberFormat('fr-FR', {
+        style: 'decimal',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount) + ' FCFA';
 }
 
 function formatDate(dateString) {
