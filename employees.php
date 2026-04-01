@@ -17,7 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     
     if ($action === 'add') {
-        $employee_id = 'EMP' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
+        // Generate unique employee ID
+        do {
+            $employee_id = 'EMP' . str_pad(mt_rand(1, 99999), 5, '0', STR_PAD_LEFT);
+            $checkStmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE employee_id = ?");
+            $checkStmt->execute([$employee_id]);
+        } while ($checkStmt->fetchColumn() > 0);
+
         $first_name = trim($_POST['first_name']);
         $last_name = trim($_POST['last_name']);
         $email = trim($_POST['email']);
@@ -31,6 +37,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $salary_grade_id = $_POST['salary_grade_id'] ?? null;
         $basic_salary = floatval($_POST['basic_salary'] ?? 0);
         $employee_type = $_POST['employee_type'] ?? 'permanent';
+
+        // Server-side validation
+        $errors = [];
+        if (strlen($first_name) < 2 || strlen($first_name) > 50) $errors[] = 'First name must be 2-50 characters';
+        if (strlen($last_name) < 2 || strlen($last_name) > 50) $errors[] = 'Last name must be 2-50 characters';
+        if (!empty($email) && !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email format';
+        if (!empty($phone) && !preg_match('/^[\+]?[0-9\s\-\(\)]{6,20}$/', $phone)) $errors[] = 'Invalid phone format';
+        if (strlen($department) < 2 || strlen($department) > 50) $errors[] = 'Department must be 2-50 characters';
+        if (strlen($designation) < 2 || strlen($designation) > 50) $errors[] = 'Designation must be 2-50 characters';
+        if ($basic_salary < 0) $errors[] = 'Salary cannot be negative';
+        if (!empty($join_date) && !strtotime($join_date)) $errors[] = 'Invalid join date';
+
+        if (!empty($errors)) {
+            $message = 'Validation errors: ' . implode(', ', $errors);
+            $messageType = 'danger';
+        } else {
         
         // Handle working days - convert array to JSON
         $working_days = isset($_POST['working_days']) ? json_encode($_POST['working_days']) : '["Monday","Tuesday","Wednesday","Thursday","Friday"]';
@@ -53,6 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Error adding employee: ' . $e->getMessage();
             $messageType = 'danger';
         }
+        } // end validation else
     }
     
     if ($action === 'edit') {
@@ -81,11 +104,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete') {
         $id = $_POST['id'];
         try {
-            $stmt = $pdo->prepare("DELETE FROM employees WHERE id = ?");
-            $stmt->execute([$id]);
-            $message = 'Employee deleted successfully!';
+            $pdo->beginTransaction();
+            // Delete related records first (cascade)
+            $pdo->prepare("DELETE FROM payslips WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM payroll WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM attendance WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM attendance_logs WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM leave_requests WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM employee_allowances WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM employee_deductions WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM users WHERE employee_id = ?")->execute([$id]);
+            $pdo->prepare("DELETE FROM employees WHERE id = ?")->execute([$id]);
+            $pdo->commit();
+            $message = 'Employee and all related records deleted successfully!';
             $messageType = 'success';
         } catch (PDOException $e) {
+            $pdo->rollBack();
             $message = 'Error deleting employee: ' . $e->getMessage();
             $messageType = 'danger';
         }

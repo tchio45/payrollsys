@@ -90,6 +90,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $monthNumber = str_pad(date('m', strtotime("1 $month $year")), 2, '0', STR_PAD_LEFT);
                 $yearStr = strval($year);
 
+                // Calculate actual working days for this employee in this month
+                $empWorkingDays = json_decode($employee['working_days'] ?? '["Monday","Tuesday","Wednesday","Thursday","Friday"]', true)
+                    ?? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                $daysInMonth = cal_days_in_month(CAL_GREGORIAN, intval($monthNumber), intval($year));
+                $actual_working_days = 0;
+                for ($d = 1; $d <= $daysInMonth; $d++) {
+                    $dayName = date('l', mktime(0, 0, 0, intval($monthNumber), $d, intval($year)));
+                    if (in_array($dayName, $empWorkingDays)) {
+                        $actual_working_days++;
+                    }
+                }
+
                 // Get attendance for the month
                 $attendanceStmt = $pdo->prepare("
                     SELECT COUNT(*) as days_worked, SUM(overtime_hours) as overtime
@@ -174,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([
                     $employee['id'], $month, $year, $basic_salary,
                     $total_allowances, $total_deductions, $gross_salary, $net_salary,
-                    30, $days_worked, $overtime_hours, $overtime_amount,
+                    $actual_working_days, $days_worked, $overtime_hours, $overtime_amount,
                     $late_deduction, $early_leave_deduction,
                     $_SESSION['user_id']
                 ]);

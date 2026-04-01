@@ -666,16 +666,6 @@ function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-IN', options);
 }
 
-function exportToExcel() {
-    const table = document.querySelector('.data-table');
-    if (table) {
-        const ws = XLSX.utils.table_to_sheet(table);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-        XLSX.writeFile(wb, 'export.xlsx');
-    }
-}
-
 function exportToCSV() {
     const table = document.querySelector('.data-table');
     if (table) {
