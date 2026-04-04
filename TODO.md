@@ -1,25 +1,12 @@
-# ✅ Fix Duplicate formatCurrency() Error - COMPLETED
+# FCFA Currency Change TODO
 
-## Final Status: ✅ **ALL STEPS COMPLETE**
+## Steps:
+- [x] 1. Create this TODO.md file
+- [x] 2. Add currency constants to config.php
+- [x] 3. Update formatCurrency function in db.php  
+- [ ] 4. Update comments/rates in payroll.php
+- [ ] 5. Search codebase for other currency displays (search_files for number_format, direct \$ symbols)
+- [ ] 6. Test payroll processing and displays
+- [ ] 7. Complete task
 
-### Completed Steps:
-- ✅ **Step 1**: Created TODO.md
-- ✅ **Step 2**: Removed duplicate from `attendance.php`
-- ✅ **Step 3**: Updated `db.php` to ₹ format (2 decimals)
-- ✅ **Step 4**: attendance.php now loads without fatal error (duplicate removed)
-- ✅ **Step 5**: Currency format consistent: `'₹' . number_format($amount ?? 0, 2)`
-- ✅ **Step 6**: Searched all *.php files → **Only 1 definition** remains in db.php
-- ✅ **Step 7**: Task complete!
-
-## Changes Summary:
-| File | Change |
-|------|--------|
-| `attendance.php` | Removed duplicate `formatCurrency()` (lines ~783-789) |
-| `db.php` | Updated `formatCurrency()` to ₹ with 2 decimals |
-
-## Test:
-- Reload `attendance.php` → **No fatal error**
-- Currency displays consistently as **₹12,345.00** format
-- All other PHP files clean (no duplicates)
-
-**The fatal error is FIXED! 🎉**
+**Current Step:** 4
