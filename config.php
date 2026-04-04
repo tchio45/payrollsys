@@ -26,6 +26,10 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Currency configuration for FCFA
+define('CURRENCY_SYMBOL', 'FCFA');
+define('CURRENCY_DECIMALS', 0);
+
 // Check if user is logged in
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
