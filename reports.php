@@ -3,6 +3,7 @@ require_once 'config.php';
 require_once 'db.php';
 
 requireLogin();
+if (!isAdmin()) { header('Location: my_profile.php'); exit; }
 
 // Get filter values
 $month = $_GET['month'] ?? date('F');
@@ -95,69 +96,10 @@ $deptSummary = $pdo->query("
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <span class="logo"><i class="fas fa-wallet"></i></span>
-                <span>PayPro</span>
-            </div>
-            <nav class="sidebar-menu">
-                <div class="menu-section">Main</div>
-                <a href="dashboard.php" class="menu-item">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="employees.php" class="menu-item">
-                    <i class="fas fa-users"></i>
-                    <span>Employees</span>
-                </a>
-                <a href="salary.php" class="menu-item">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <span>Salary & Grades</span>
-                </a>
-                <a href="attendance.php" class="menu-item">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Attendance</span>
-                </a>
-                <div class="menu-section">Payroll</div>
-                <a href="payroll.php" class="menu-item">
-                    <i class="fas fa-calculator"></i>
-                    <span>Payroll Processing</span>
-                </a>
-                <a href="payslips.php" class="menu-item">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Payslips</span>
-                </a>
-                <div class="menu-section">Reports</div>
-                <a href="reports.php" class="menu-item active">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </aside>
+        <?php $pageTitle = 'Reports'; include 'includes/sidebar.php'; ?>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="toggle-btn"><i class="fas fa-bars"></i></button>
-                    <h3>Reports & Analytics</h3>
-                </div>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
-                            <div class="user-role">Administrator</div>
-                        </div>
-                    </div>
-                    <a href="logout.php" class="btn btn-sm btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </header>
+            <?php include 'includes/header.php'; ?>
 
             <div class="page-content">
                 <!-- Filter -->

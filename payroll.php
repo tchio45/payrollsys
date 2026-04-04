@@ -3,9 +3,25 @@ require_once 'config.php';
 require_once 'db.php';
 
 requireLogin();
+if (!isAdmin()) { header('Location: my_profile.php'); exit; }
 
 $message = '';
 $messageType = '';
+
+// Handle AJAX requests (before any HTML output)
+if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
+    $stmt = $pdo->prepare("
+        SELECT p.*, e.first_name, e.last_name, e.employee_id, e.department, e.designation
+        FROM payroll p
+        JOIN employees e ON p.employee_id = e.id
+        WHERE p.id = ?
+    ");
+    $stmt->execute([$_GET['id']]);
+    $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
+    header('Content-Type: application/json');
+    echo json_encode(['success' => true, 'payroll' => $payroll]);
+    exit;
+}
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -70,16 +86,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $deduction_breakdown[] = $deduction_amount;
                 }
                 
+                // Convert month name to number for attendance query
+                $monthNumber = str_pad(date('m', strtotime("1 $month $year")), 2, '0', STR_PAD_LEFT);
+                $yearStr = strval($year);
+
+                // Calculate actual working days for this employee in this month
+                $empWorkingDays = json_decode($employee['working_days'] ?? '["Monday","Tuesday","Wednesday","Thursday","Friday"]', true)
+                    ?? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+                $daysInMonth = cal_days_in_month(CAL_GREGORIAN, intval($monthNumber), intval($year));
+                $actual_working_days = 0;
+                for ($d = 1; $d <= $daysInMonth; $d++) {
+                    $dayName = date('l', mktime(0, 0, 0, intval($monthNumber), $d, intval($year)));
+                    if (in_array($dayName, $empWorkingDays)) {
+                        $actual_working_days++;
+                    }
+                }
+
                 // Get attendance for the month
                 $attendanceStmt = $pdo->prepare("
-                    SELECT COUNT(*) as days_worked, SUM(overtime_hours) as overtime 
-                    FROM attendance 
-                    WHERE employee_id = ? 
-                    AND strftime('%m', attendance_date) = ? 
+                    SELECT COUNT(*) as days_worked, SUM(overtime_hours) as overtime
+                    FROM attendance
+                    WHERE employee_id = ?
+                    AND strftime('%m', attendance_date) = ?
                     AND strftime('%Y', attendance_date) = ?
                     AND status = 'present'
                 ");
-                $attendanceStmt->execute([$employee['id'], $month, $year]);
+                $attendanceStmt->execute([$employee['id'], $monthNumber, $yearStr]);
                 $attendance = $attendanceStmt->fetch(PDO::FETCH_ASSOC);
                 
                 $days_worked = intval($attendance['days_worked'] ?? 0);
@@ -97,13 +129,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Get attendance logs for the month to calculate late/early deductions
                 $logsStmt = $pdo->prepare("
-                    SELECT clock_in, clock_in_status, clock_out, clock_out_status 
-                    FROM attendance_logs 
-                    WHERE employee_id = ? 
-                    AND strftime('%m', log_date) = ? 
+                    SELECT clock_in, clock_in_status, clock_out, clock_out_status
+                    FROM attendance_logs
+                    WHERE employee_id = ?
+                    AND strftime('%m', log_date) = ?
                     AND strftime('%Y', log_date) = ?
                 ");
-                $logsStmt->execute([$employee['id'], $month, $year]);
+                $logsStmt->execute([$employee['id'], $monthNumber, $yearStr]);
                 $logs = $logsStmt->fetchAll(PDO::FETCH_ASSOC);
                 
                 foreach ($logs as $log) {
@@ -154,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $insertStmt->execute([
                     $employee['id'], $month, $year, $basic_salary,
                     $total_allowances, $total_deductions, $gross_salary, $net_salary,
-                    30, $days_worked, $overtime_hours, $overtime_amount,
+                    $actual_working_days, $days_worked, $overtime_hours, $overtime_amount,
                     $late_deduction, $early_leave_deduction,
                     $_SESSION['user_id']
                 ]);
@@ -190,15 +222,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Get payroll records
-$payrollRecords = $pdo->query("
-    SELECT p.*, e.first_name, e.last_name, e.employee_id, e.department, e.designation 
-    FROM payroll p 
-    JOIN employees e ON p.employee_id = e.id 
+$allPayrollRecords = $pdo->query("
+    SELECT p.*, e.first_name, e.last_name, e.employee_id, e.department, e.designation
+    FROM payroll p
+    JOIN employees e ON p.employee_id = e.id
     ORDER BY p.payroll_year DESC, p.payroll_month DESC, e.first_name
 ")->fetchAll(PDO::FETCH_ASSOC);
+$payPagination = paginate($allPayrollRecords, 15);
+$payrollRecords = $payPagination['data'];
 
-// Calculate totals
-$totalPayroll = array_sum(array_column($payrollRecords, 'net_salary'));
+// Calculate totals (use all records, not paginated)
+$totalPayroll = array_sum(array_column($allPayrollRecords, 'net_salary'));
 
 // Get current month/year for display
 $currentMonth = date('F');
@@ -212,72 +246,14 @@ $currentYear = date('Y');
     <title>Payroll Processing - PayPro Payroll System</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <?php echo getCsrfMeta(); ?>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <span class="logo"><i class="fas fa-wallet"></i></span>
-                <span>PayPro</span>
-            </div>
-            <nav class="sidebar-menu">
-                <div class="menu-section">Main</div>
-                <a href="dashboard.php" class="menu-item">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="employees.php" class="menu-item">
-                    <i class="fas fa-users"></i>
-                    <span>Employees</span>
-                </a>
-                <a href="salary.php" class="menu-item">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <span>Salary & Grades</span>
-                </a>
-                <a href="attendance.php" class="menu-item">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Attendance</span>
-                </a>
-                <div class="menu-section">Payroll</div>
-                <a href="payroll.php" class="menu-item active">
-                    <i class="fas fa-calculator"></i>
-                    <span>Payroll Processing</span>
-                </a>
-                <a href="payslips.php" class="menu-item">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Payslips</span>
-                </a>
-                <div class="menu-section">Reports</div>
-                <a href="reports.php" class="menu-item">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </aside>
+        <?php $pageTitle = 'Payroll Processing'; include 'includes/sidebar.php'; ?>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="toggle-btn"><i class="fas fa-bars"></i></button>
-                    <h3>Payroll Processing</h3>
-                </div>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
-                            <div class="user-role">Administrator</div>
-                        </div>
-                    </div>
-                    <a href="logout.php" class="btn btn-sm btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </header>
+            <?php include 'includes/header.php'; ?>
 
             <div class="page-content">
                 <?php if ($message): ?>
@@ -411,6 +387,7 @@ $currentYear = date('Y');
                                     </tbody>
                                 </table>
                             </div>
+                            <?php renderPagination($payPagination); ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -510,7 +487,8 @@ $currentYear = date('Y');
                 const formData = new FormData();
                 formData.append('action', 'delete');
                 formData.append('id', id);
-                
+                formData.append('csrf_token', getCsrfToken());
+
                 fetch('payroll.php', {
                     method: 'POST',
                     body: formData
@@ -528,21 +506,3 @@ $currentYear = date('Y');
 </body>
 </html>
 
-<?php
-
-
-// Handle AJAX requests
-if (isset($_GET['action']) && $_GET['action'] === 'get' && isset($_GET['id'])) {
-    $stmt = $pdo->prepare("
-        SELECT p.*, e.first_name, e.last_name, e.employee_id, e.department, e.designation 
-        FROM payroll p 
-        JOIN employees e ON p.employee_id = e.id 
-        WHERE p.id = ?
-    ");
-    $stmt->execute([$_GET['id']]);
-    $payroll = $stmt->fetch(PDO::FETCH_ASSOC);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => true, 'payroll' => $payroll]);
-    exit;
-}
-?>

@@ -14,6 +14,13 @@ $employeeId = getLoggedInEmployeeId();
 $message = '';
 $messageType = '';
 
+// CSRF validation for all POST requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        die('CSRF token validation failed');
+    }
+}
+
 // Handle clock-in (presence detector)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'clock_in') {
     $today = date('Y-m-d');
@@ -369,47 +376,14 @@ function formatDate($date) {
     <title>My Profile - PayPro Payroll System</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <?php echo getCsrfMeta(); ?>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <span class="logo"><i class="fas fa-wallet"></i></span>
-                <span>PayPro</span>
-            </div>
-            <nav class="sidebar-menu">
-                <div class="menu-section">Employee</div>
-                <a href="my_profile.php" class="menu-item active">
-                    <i class="fas fa-user"></i>
-                    <span>My Profile</span>
-                </a>
-            </nav>
-        </aside>
+        <?php $pageTitle = 'My Profile'; include 'includes/sidebar.php'; ?>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <!-- Top Header -->
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="toggle-btn"><i class="fas fa-bars"></i></button>
-                    <h3>My Profile</h3>
-                </div>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <?php echo strtoupper(substr($employee['first_name'], 0, 1)); ?>
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name"><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></div>
-                            <div class="user-role">Employee</div>
-                        </div>
-                    </div>
-                    <a href="logout.php" class="btn btn-sm btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </header>
+            <?php include 'includes/header.php'; ?>
 
             <!-- Page Content -->
             <div class="page-content">
@@ -439,6 +413,7 @@ function formatDate($date) {
                             </div>
                             <div class="profile-upload">
                                 <form method="POST" action="" enctype="multipart/form-data" class="upload-form">
+                                    <?php echo getCsrfField(); ?>
                                     <input type="hidden" name="action" value="upload_photo">
                                     <input type="file" name="profile_picture" id="profile_picture" accept="image/*" style="display: none;" onchange="this.form.submit()">
                                     <label for="profile_picture" class="btn btn-sm btn-secondary">
@@ -594,6 +569,7 @@ function formatDate($date) {
                             <div class="tracker-buttons">
                                 <?php if (!$todayLog): ?>
                                     <form method="POST" action="" style="display: inline;">
+                                        <?php echo getCsrfField(); ?>
                                         <input type="hidden" name="action" value="clock_in">
                                         <button type="submit" class="btn btn-success" <?php echo !$isWorkingDay ? 'disabled' : ''; ?>>
                                             <i class="fas fa-sign-in-alt"></i> Clock In
@@ -601,6 +577,7 @@ function formatDate($date) {
                                     </form>
                                 <?php elseif (!$todayLog['clock_out']): ?>
                                     <form method="POST" action="" style="display: inline;">
+                                        <?php echo getCsrfField(); ?>
                                         <input type="hidden" name="action" value="clock_out">
                                         <button type="submit" class="btn btn-danger">
                                             <i class="fas fa-sign-out-alt"></i> Clock Out
@@ -800,6 +777,7 @@ function formatDate($date) {
                     </div>
                     <div class="card-body">
                         <form method="POST" action="" class="form-row">
+                            <?php echo getCsrfField(); ?>
                             <input type="hidden" name="action" value="submit_leave_request">
                             <div class="form-group">
                                 <label>Request Type *</label>
@@ -850,6 +828,7 @@ function formatDate($date) {
                         <div class="form-section mt-4">
                             <h4><i class="fas fa-user-edit"></i> Change Username</h4>
                             <form method="POST" action="" id="usernameForm">
+                                <?php echo getCsrfField(); ?>
                                 <input type="hidden" name="action" value="change_username">
                                 <div class="form-row">
                                     <div class="form-group">
@@ -873,6 +852,7 @@ function formatDate($date) {
                         <div class="form-section mt-4">
                             <h4><i class="fas fa-lock"></i> Change Password</h4>
                             <form method="POST" action="" id="passwordForm">
+                                <?php echo getCsrfField(); ?>
                                 <input type="hidden" name="action" value="change_password">
                                 <div class="form-row">
                                     <div class="form-group">
@@ -1014,6 +994,7 @@ function formatDate($date) {
             </div>
             <form method="POST" action="">
                 <div class="modal-body">
+                    <?php echo getCsrfField(); ?>
                     <input type="hidden" name="action" value="update_profile">
                     <div class="form-row">
                         <div class="form-group">

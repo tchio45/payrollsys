@@ -1811,3 +1811,42 @@ select.form-control {
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 0;
+    margin-top: 15px;
+    border-top: 1px solid #e9ecef;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.pagination-info {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.pagination-controls .btn-sm {
+    min-width: 36px;
+    text-align: center;
+    padding: 6px 12px;
+}
+
+.btn-outline {
+    background: #fff;
+    color: #2c3e50;
+    border: 1px solid #dee2e6;
+}
+
+.btn-outline:hover {
+    background: #e9ecef;
+}

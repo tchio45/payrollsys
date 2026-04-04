@@ -3,14 +3,19 @@ require_once 'config.php';
 require_once 'db.php';
 
 requireLogin();
+if (!isAdmin()) { header('Location: my_profile.php'); exit; }
 
 $message = '';
 $messageType = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // CSRF validation
+    if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
+        die('CSRF token validation failed');
+    }
     $action = $_POST['action'] ?? '';
-    
+
     if ($action === 'mark_attendance') {
         $employee_id = $_POST['employee_id'];
         $attendance_date = $_POST['attendance_date'];
@@ -194,12 +199,16 @@ $sql .= " ORDER BY a.attendance_date DESC, e.first_name";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
-$attendanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$allAttendanceRecords = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Calculate statistics
-$totalPresent = count(array_filter($attendanceRecords, fn($r) => $r['status'] === 'present'));
-$totalAbsent = count(array_filter($attendanceRecords, fn($r) => $r['status'] === 'absent'));
-$totalLeave = count(array_filter($attendanceRecords, fn($r) => $r['status'] === 'leave'));
+// Calculate statistics (on full data)
+$totalPresent = count(array_filter($allAttendanceRecords, fn($r) => $r['status'] === 'present'));
+$totalAbsent = count(array_filter($allAttendanceRecords, fn($r) => $r['status'] === 'absent'));
+$totalLeave = count(array_filter($allAttendanceRecords, fn($r) => $r['status'] === 'leave'));
+
+// Paginate
+$attPagination = paginate($allAttendanceRecords, 20);
+$attendanceRecords = $attPagination['data'];
 
 // Handle leave request actions (approve/reject)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
@@ -276,72 +285,14 @@ $allRequests = $pdo->query("
     <title>Attendance - PayPro Payroll System</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <?php echo getCsrfMeta(); ?>
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-brand">
-                <span class="logo"><i class="fas fa-wallet"></i></span>
-                <span>PayPro</span>
-            </div>
-            <nav class="sidebar-menu">
-                <div class="menu-section">Main</div>
-                <a href="dashboard.php" class="menu-item">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="employees.php" class="menu-item">
-                    <i class="fas fa-users"></i>
-                    <span>Employees</span>
-                </a>
-                <a href="salary.php" class="menu-item">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <span>Salary & Grades</span>
-                </a>
-                <a href="attendance.php" class="menu-item active">
-                    <i class="fas fa-calendar-check"></i>
-                    <span>Attendance</span>
-                </a>
-                <div class="menu-section">Payroll</div>
-                <a href="payroll.php" class="menu-item">
-                    <i class="fas fa-calculator"></i>
-                    <span>Payroll Processing</span>
-                </a>
-                <a href="payslips.php" class="menu-item">
-                    <i class="fas fa-file-invoice-dollar"></i>
-                    <span>Payslips</span>
-                </a>
-                <div class="menu-section">Reports</div>
-                <a href="reports.php" class="menu-item">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </aside>
+        <?php $pageTitle = 'Attendance'; include 'includes/sidebar.php'; ?>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="top-header">
-                <div class="header-left">
-                    <button class="toggle-btn"><i class="fas fa-bars"></i></button>
-                    <h3>Attendance Management</h3>
-                </div>
-                <div class="header-right">
-                    <div class="user-info">
-                        <div class="user-avatar">
-                            <?php echo strtoupper(substr($_SESSION['full_name'], 0, 1)); ?>
-                        </div>
-                        <div class="user-details">
-                            <div class="user-name"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
-                            <div class="user-role">Administrator</div>
-                        </div>
-                    </div>
-                    <a href="logout.php" class="btn btn-sm btn-danger">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </header>
+            <?php include 'includes/header.php'; ?>
 
             <div class="page-content">
                 <?php if ($message): ?>
@@ -388,6 +339,7 @@ $allRequests = $pdo->query("
                     </div>
                     <div class="card-body">
                         <form method="POST" action="" class="form-row">
+                            <?php echo getCsrfField(); ?>
                             <input type="hidden" name="action" value="mark_attendance">
                             <div class="form-group">
                                 <label>Employee</label>
@@ -432,6 +384,7 @@ $allRequests = $pdo->query("
                     </div>
                     <div class="card-body">
                         <form method="POST" action="" class="form-row">
+                            <?php echo getCsrfField(); ?>
                             <input type="hidden" name="action" value="bulk_attendance">
                             <div class="form-group">
                                 <label>Date</label>
@@ -461,6 +414,7 @@ $allRequests = $pdo->query("
                     </div>
                     <div class="card-body">
                         <form method="POST" action="" class="form-row">
+                            <?php echo getCsrfField(); ?>
                             <input type="hidden" name="action" value="clock_in">
                             <div class="form-group">
                                 <label>Employee</label>
@@ -487,6 +441,7 @@ $allRequests = $pdo->query("
                         <hr style="margin: 20px 0;">
                         
                         <form method="POST" action="" class="form-row">
+                            <?php echo getCsrfField(); ?>
                             <input type="hidden" name="action" value="clock_out">
                             <div class="form-group">
                                 <label>Employee</label>
@@ -519,6 +474,7 @@ $allRequests = $pdo->query("
                     </div>
                     <div class="card-body">
                         <form method="POST" action="" class="form-row">
+                            <?php echo getCsrfField(); ?>
                             <input type="hidden" name="action" value="generate_monthly">
                             <div class="form-group">
                                 <label>Month</label>
@@ -635,6 +591,7 @@ $allRequests = $pdo->query("
                                     </tbody>
                                 </table>
                             </div>
+                            <?php renderPagination($attPagination); ?>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -685,6 +642,7 @@ $allRequests = $pdo->query("
                                                 <td><?php echo date('d M Y H:i', strtotime($request['created_at'])); ?></td>
                                                 <td class="actions">
                                                     <form method="POST" action="" style="display: inline;">
+                                                        <?php echo getCsrfField(); ?>
                                                         <input type="hidden" name="action" value="approve_request">
                                                         <input type="hidden" name="request_id" value="<?php echo $request['id']; ?>">
                                                         <input type="hidden" name="admin_response" value="Approved by admin">
@@ -693,6 +651,7 @@ $allRequests = $pdo->query("
                                                         </button>
                                                     </form>
                                                     <form method="POST" action="" style="display: inline;" onsubmit="return confirm('Are you sure you want to reject this request?');">
+                                                        <?php echo getCsrfField(); ?>
                                                         <input type="hidden" name="action" value="reject_request">
                                                         <input type="hidden" name="request_id" value="<?php echo $request['id']; ?>">
                                                         <input type="hidden" name="admin_response" value="Rejected by admin">

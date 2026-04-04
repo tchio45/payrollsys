@@ -1,0 +1,46 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Create app directory if not exists
+            mkdir -p /var/www/payrollsys/uploads
+
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "*.php,*.css,*.js,includes/*,uploads/.gitkeep,.htaccess"
+          target: /var/www/payrollsys
+          overwrite: true
+
+      - name: Set permissions
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/payrollsys
+            echo "${{ secrets.SERVER_SUDO_PASS }}" | sudo -S chown -R ${{ secrets.SERVER_USER }}:www-data .
+            echo "${{ secrets.SERVER_SUDO_PASS }}" | sudo -S chmod -R 755 .
+            echo "${{ secrets.SERVER_SUDO_PASS }}" | sudo -S chmod 775 uploads
+            echo "${{ secrets.SERVER_SUDO_PASS }}" | sudo -S chmod 775 .
+            echo "Deploy complete: $(date)"

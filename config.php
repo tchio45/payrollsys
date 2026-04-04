@@ -10,9 +10,8 @@ define('DB_PATH', __DIR__ . '/payroll.db');
 define('APP_NAME', 'PayPro Payroll System');
 define('APP_VERSION', '1.0.0');
 
-// Default admin credentials (change in production)
+// Default admin username (password is set in db.php seedData: SecureAdmin2024!)
 define('ADMIN_USERNAME', 'admin');
-define('ADMIN_PASSWORD', 'admin123');
 define('ADMIN_PHONE', '+237694827157'); // Admin phone number for notifications
 
 // SMS API Configuration - CallMeBot (free WhatsApp/SMS service)
@@ -47,6 +46,11 @@ function requireLogin() {
 // Generate CSRF token for forms (call in HTML)
 function getCsrfField() {
     return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(generateCsrfToken()) . '">';
+}
+
+// Generate CSRF meta tag for AJAX requests (call in <head>)
+function getCsrfMeta() {
+    return '<meta name="csrf-token" content="' . htmlspecialchars(generateCsrfToken()) . '">';
 }
 
 

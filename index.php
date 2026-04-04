@@ -51,28 +51,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Paper Money Animated Background -->
         <div class="money-bg">
             <div class="bill bill-1">
-                <span class="dollar-sign">$</span>
-                <span class="bill-amount">100</span>
+                <span class="dollar-sign">FCFA</span>
+                <span class="bill-amount">10 000</span>
             </div>
             <div class="bill bill-2">
-                <span class="dollar-sign">$</span>
-                <span class="bill-amount">50</span>
+                <span class="dollar-sign">FCFA</span>
+                <span class="bill-amount">5 000</span>
             </div>
             <div class="bill bill-3">
-                <span class="dollar-sign">$</span>
-                <span class="bill-amount">20</span>
+                <span class="dollar-sign">FCFA</span>
+                <span class="bill-amount">2 000</span>
             </div>
             <div class="bill bill-4">
-                <span class="dollar-sign">$</span>
-                <span class="bill-amount">10</span>
+                <span class="dollar-sign">FCFA</span>
+                <span class="bill-amount">1 000</span>
             </div>
             <div class="bill bill-5">
-                <span class="dollar-sign">$</span>
-                <span class="bill-amount">100</span>
+                <span class="dollar-sign">FCFA</span>
+                <span class="bill-amount">10 000</span>
             </div>
             <div class="bill bill-6">
-                <span class="dollar-sign">$</span>
-                <span class="bill-amount">5</span>
+                <span class="dollar-sign">FCFA</span>
+                <span class="bill-amount">500</span>
             </div>
         </div>
         <div class="video-overlay"></div>

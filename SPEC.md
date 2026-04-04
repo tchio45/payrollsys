@@ -1,140 +1,102 @@
-# Payroll System Specification
+# Payroll System - Specification
 
 ## Project Overview
-- **Project Name**: Complete Payroll Management System
+- **Project Name**: PayPro - Payroll Management System
 - **Type**: Web Application (PHP + SQLite)
 - **Core Functionality**: Full-featured payroll management with employee, salary, attendance, and reporting modules
 - **Target Users**: HR/Payroll administrators, small to medium businesses
+- **Currency**: FCFA (Central Africa)
 
 ## Tech Stack
-- **Backend**: PHP 7.4+
+- **Backend**: PHP 8.4
 - **Database**: SQLite (portable, no setup required)
 - **Frontend**: HTML5, CSS3, JavaScript
-- **Styling**: Custom CSS with modern, clean design
+- **Server**: Nginx + PHP 8.4-FPM
+- **CI/CD**: GitHub Actions (auto-deploy on push to master)
+- **Hosting**: Ubuntu 24.04 VPS
 
 ## Database Schema
 
 ### Tables
-1. **users** - System administrators
-2. **employees** - Employee personal and professional details
-3. **salary_grades** - Salary grades/levels
-4. **allowances** - Allowances configuration
-5. **deductions** - Deductions configuration
-6. **attendance** - Employee attendance records
-7. **payroll** - Monthly payroll records
-8. **payslips** - Generated payslips
+1. **users** - System users (admin + employees)
+2. **employees** - Employee personal and professional details (permanent/temporal types)
+3. **salary_grades** - Salary grades/levels (Grade A-E)
+4. **allowances** - Allowances configuration (HRA, DA, Conveyance, Medical, Special, Overtime)
+5. **deductions** - Deductions configuration (PF, Tax, Insurance)
+6. **employee_allowances** - Per-employee allowance assignments
+7. **employee_deductions** - Per-employee deduction assignments
+8. **attendance** - Daily attendance records
+9. **attendance_logs** - Clock-in/clock-out records with lateness detection
+10. **leave_requests** - Employee leave requests with admin approval
+11. **payroll** - Monthly payroll records with overtime, late/early deductions
+12. **payslips** - Generated payslips
 
-## UI/UX Specification
+## Architecture
 
-### Color Palette
-- **Primary**: #2c3e50 (Dark blue-gray)
-- **Secondary**: #3498db (Bright blue)
-- **Accent**: #27ae60 (Green - for success/positive)
-- **Warning**: #f39c12 (Orange)
-- **Danger**: #e74c3c (Red)
-- **Background**: #f8f9fa (Light gray)
-- **Card Background**: #ffffff (White)
-- **Text Primary**: #2c3e50
-- **Text Secondary**: #7f8c8d
+### Shared Components (includes/)
+- **sidebar.php** - Dynamic navigation menu (admin vs employee view, auto-active detection)
+- **header.php** - Top header with user info and role
+- **pagination.php** - Reusable pagination (paginate() + renderPagination())
 
-### Typography
-- **Font Family**: 'Segoe UI', 'Roboto', sans-serif
-- **Headings**: Bold, 24-32px
-- **Body**: Regular, 14-16px
-- **Small**: 12px
+### Security
+- CSRF protection on all POST forms and AJAX calls (meta tag + hidden fields)
+- Role-based access control (admin pages redirect non-admin users)
+- PDO prepared statements for all queries
+- Password hashing (bcrypt via password_hash)
+- Nginx blocks access to sensitive files (.db, config.php, includes/)
 
-### Layout
-- **Sidebar**: Fixed left, 250px width, dark theme
-- **Main Content**: Fluid, with padding
-- **Cards**: White background, subtle shadow, rounded corners
-- **Tables**: Striped rows, hover effects
-- **Forms**: Clean input fields with validation
+### Functionality
 
-### Components
-- Navigation sidebar with icons
-- Top header with user info
-- Dashboard cards with statistics
-- Data tables with actions
-- Modal forms for add/edit
-- Print-friendly payslip
-- Charts for reports
+#### 1. Authentication (index.php)
+- Login with username/password
+- Session management with role detection (admin vs employee)
+- Admin redirects to dashboard, employee to my_profile
 
-## Functionality Specification
-
-### 1. Authentication
-- Login page with username/password
-- Session management
-- Logout functionality
-
-### 2. Dashboard
-- Total employees count
-- Total payroll for current month
-- Recent payroll processed
+#### 2. Dashboard (dashboard.php) - Admin only
+- Total employees count, departments, monthly payroll
+- Processed employees ratio
+- Recent payroll and employee tables
 - Quick action buttons
 
-### 3. Employee Management
-- Add new employee (personal details, job details)
-- Edit employee information
-- Delete employee
-- View employee list with search/filter
-- Employee profile view
+#### 3. Employee Management (employees.php) - Admin only
+- Add/edit/delete employees with full details
+- Employee types: permanent, temporal
+- Configurable working days and hours
+- Auto-create user account on employee creation
+- Paginated list (15 per page)
 
-### 4. Salary Management
-- Create salary grades
-- Define allowances (HRA, DA, Conveyance, etc.)
-- Define deductions (PF, Tax, Insurance, etc.)
-- Assign salary grade to employees
+#### 4. Salary Management (salary.php) - Admin only
+- Salary grades CRUD
+- Allowances CRUD (fixed amount or percentage of basic)
+- Deductions CRUD (fixed amount or percentage of basic)
 
-### 5. Attendance Management
-- Mark daily attendance
-- View attendance calendar
-- Attendance reports by month/employee
+#### 5. Attendance Management (attendance.php) - Admin only
+- Mark individual/bulk attendance
+- Clock-in/clock-out with late/early detection
+- Generate monthly attendance for all employees
+- Leave request approval/rejection
+- Paginated records (20 per page)
 
-### 6. Payroll Processing
-- Select month/year
-- Calculate gross salary
-- Apply allowances/deductions
-- Calculate net salary
-- Process payroll
-- View payroll history
+#### 6. Employee Profile (my_profile.php) - Employee only
+- View personal info and payroll history
+- Clock-in/clock-out
+- Submit leave requests (with WhatsApp notification to admin)
+- Change username/password
+- Upload profile picture
 
-### 7. Payslip Generation
-- Generate monthly payslip
-- Print-friendly format
-- Download/view payslips
+#### 7. Payroll Processing (payroll.php) - Admin only
+- Select month/year and process for all active employees
+- Auto-calculates: basic + allowances + overtime - deductions - late/early penalties
+- Attendance-based working days calculation
+- Paginated history (15 per page)
 
-### 8. Reports
+#### 8. Payslip Generation (payslips.php) - Admin only
+- Generate payslips from processed payroll
+- View and print payslips
+- Paginated list (15 per page)
+
+#### 9. Reports (reports.php) - Admin only
 - Monthly payroll summary
+- Department-wise breakdown
 - Employee-wise salary report
-- Allowance/deduction reports
-- Export capabilities
-
-## File Structure
-```
-PAYROLL_SYS/
-├── index.php          # Login page
-├── dashboard.php      # Main dashboard
-├── employees.php      # Employee management
-├── salary.php         # Salary grades & settings
-├── attendance.php     # Attendance management
-├── payroll.php        # Payroll processing
-├── payslips.php       # Payslip generation
-├── reports.php        # Reports & analytics
-├── logout.php         # Logout handler
-├── config.php         # Configuration
-├── db.php             # Database setup
-├── style.css          # Styles
-└── script.js          # JavaScript
-```
-
-## Acceptance Criteria
-1. ✓ User can login with admin credentials
-2. ✓ Dashboard displays accurate statistics
-3. ✓ Can add, edit, delete employees
-4. ✓ Can configure salary grades and allowances/deductions
-5. ✓ Can mark and view attendance
-6. ✓ Can process monthly payroll
-7. ✓ Can generate and print payslips
-8. ✓ Can view various reports
-9. ✓ UI is responsive and beautiful
-10. ✓ All data persists in SQLite database
+- Filterable by month, year, department
