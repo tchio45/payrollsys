@@ -165,6 +165,7 @@ class Database {
         )");
         
         // Create payroll table
+        
         $this->db->exec("CREATE TABLE IF NOT EXISTS payroll (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             employee_id INTEGER NOT NULL,
@@ -270,7 +271,7 @@ class Database {
             // Add missing columns
             $migrations = [
                 'employee_type' => "TEXT DEFAULT 'permanent'",
-                'working_days' => "TEXT DEFAULT '[\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\"]'",
+                'working_days' => "TEXT DEFAULT '[\\\"Monday\\\",\\\"Tuesday\\\",\\\"Wednesday\\\",\\\"Thursday\\\",\\\"Friday\\\"]'",
                 'work_start_time' => "TEXT DEFAULT '09:00:00'",
                 'work_end_time' => "TEXT DEFAULT '18:00:00'"
             ];
@@ -316,6 +317,7 @@ function createEmployeeUser($employeeId) {
         }
         
         // Create username from employee_id and default password
+        
         $username = $employee['employee_id'];
         $password = password_hash($employee['employee_id'], PASSWORD_DEFAULT); // Default password is employee_id
         $fullName = $employee['first_name'] . ' ' . $employee['last_name'];
@@ -356,7 +358,6 @@ function getEmployeeByUsername($username) {
  * Format currency consistently across the application
  */
 function formatCurrency($amount) {
-    return number_format($amount ?? 0, 0) . ' FCAF';
+    return number_format($amount ?? 0, CURRENCY_DECIMALS) . ' ' . CURRENCY_SYMBOL;
 }
 ?>
-
